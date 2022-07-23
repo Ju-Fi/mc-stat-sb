@@ -2,9 +2,11 @@
   :version "0.1.0"
   :author ""
   :license "MIT"
-  :depends-on (:yason
+  :depends-on (
+  	       :yason
                :unix-opts
-               :dexador)
+               :dexador
+               )
   :components ((:module "src"
                 :components
                 ((:file "utils")
@@ -14,6 +16,10 @@
   :build-operation "program-op"
   :build-pathname "statsbtool"
   :entry-point "statsb::parse-opts")
+
+#+sb-core-compression
+(defmethod asdf:perform ((o asdf:image-op) (c asdf:system))
+  (uiop:dump-image (asdf:output-file o c) :executable t :compression t))
 
 (defsystem "statsb/tests"
   :author ""
