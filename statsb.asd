@@ -2,11 +2,9 @@
   :version "0.1.0"
   :author ""
   :license "MIT"
-  :depends-on (
-  	       :yason
+  :depends-on (:yason
                :unix-opts
-               :dexador
-               )
+               :dexador)
   :components ((:module "src"
                 :components
                 ((:file "utils")

@@ -66,7 +66,7 @@
                                    it
                                    (progn (format t "error: invalid mode ~s~%" (car free-args)) (uiop:quit)))))))))
 
-(defun gen-stat-table (list prefix stat &optional no-limit)
+(defun gen-stat-table (list prefix stat no-limit legacy)
   (mapcar (lambda (x)
             (cons (uiop:strcat prefix "." (if no-limit
                                               x
@@ -77,7 +77,10 @@
                                                            #\_)
                                                     (subseq delimited 0 (- (length delimited) 2))
                                                     delimited))))
-                  (uiop:strcat "minecraft." stat ":minecraft." x)))
+                  (if legacy
+                      (uiop:strcat "stat." stat (unless (or (string= stat "killEntity") (string= stat "entityKilledBy"))
+                                                  ".minecraft.") x)
+                      (uiop:strcat "minecraft." stat ":minecraft." x))))
           list))
 
 (defvar *pack-mcmeta* "{
@@ -89,13 +92,8 @@
 
 (defvar *load-json* "{
     \"values\": [
-        \"statsb:create_scoreboards.mcfunction\",
-        \"statsb:setup_triggers.mcfunction\"
+        \"statsb:create_scoreboards.mcfunction\"
     ]
-}")
-
-(defvar *tick-json* "{
-    \"values\": [ \"statsb:check_triggers\" ]
 }")
 
 (defun main (args)
@@ -109,6 +107,7 @@
            (version-id (gethash "version"
                                 (yason:parse (uiop:read-file-string (uiop:strcat dir "version.json")))))
            (no-limit (>= version-id 757))
+           (legacy   (<= version-id 340))
            (blocks (extract-elements
                     (yason:parse (uiop:read-file-string (uiop:strcat dir "blocks.json")))
                     "name"))
@@ -120,15 +119,15 @@
                       "name"))
            (custom (yason:parse (uiop:read-file-string "./data/custom_stats.json")))
            (stat-table (append
-                        (gen-stat-table blocks "m" "mined" no-limit)
-                        (gen-stat-table items "u" "used" no-limit)
-                        (gen-stat-table items "c" "crafted" no-limit)
-                        (gen-stat-table items "b" "broken" no-limit)
-                        (gen-stat-table items "p" "picked_up" no-limit)
-                        (gen-stat-table items "d" "dropped" no-limit)
-                        (gen-stat-table entities "k" "killed" no-limit)
-                        (gen-stat-table entities "kb" "killed_by" no-limit)
-                        (gen-stat-table custom "x" "custom" no-limit)
+                        (gen-stat-table blocks "m" (if legacy "mineBlock" "mined") no-limit legacy)
+                        (gen-stat-table items "u" (if legacy "useItem" "used") no-limit legacy)
+                        (gen-stat-table items "c" (if legacy "craftItem" "crafted") no-limit legacy)
+                        (gen-stat-table items "b" (if legacy "breakItem" "broken") no-limit legacy)
+                        (gen-stat-table items "p" (if legacy "pickup" "picked_up") no-limit legacy)
+                        (gen-stat-table items "d" (if legacy "drop" "dropped") no-limit legacy)
+                        (gen-stat-table entities "k" (if legacy "killEntity" "killed") no-limit legacy)
+                        (gen-stat-table entities "kb" (if legacy "entityKilledBy" "killed_by") no-limit legacy)
+                        (gen-stat-table custom "x" (if legacy "" "custom") no-limit legacy)
                         ))
           #| (set-trigs-dir "output/statsb/data/statsb/functions/setup_triggers.mcfunction")
            (tick-json-dir "output/statsb/data/minecraft/tags/functions/tick.json")
@@ -202,7 +201,9 @@
                                        (when (string= "json" (pathname-type file))
                                          (let* ((fname (subseq (file-namestring file) 0 36))
                                                 ;; TODO: Add legacy mode
-                                                (contents (gethash "stats" (yason:parse (uiop:read-file-string file))))
+                                                (contents (if legacy
+                                                              (yason:parse (uiop:read-file-string file))
+                                                              (gethash "stats" (yason:parse (uiop:read-file-string file)))))
                                                 (player-name (uuid->name fname)))
                                            (when (and player-name (if whitelist
                                                                       (find-if (lambda (x)
@@ -212,10 +213,14 @@
                                                  (format out "scoreboard players set ~a ~a ~a~%"
                                                          player-name
                                                          sb-name
-                                                         (let* ((split (uiop:split-string stat :separator ":"))
-                                                                (group (substitute #\: #\. (car split)))
-                                                                (name  (substitute #\: #\. (cadr split))))
-                                                           (aif (ignore-errors
-                                                                 (gethash name (gethash group contents)))
-                                                                it 0))))))))))
+                                                         (if legacy
+                                                             (aif (ignore-errors
+                                                                   (gethash stat contents))
+                                                                  it 0)
+                                                             (let* ((split (uiop:split-string stat :separator ":"))
+                                                                          (group (substitute #\: #\. (car split)))
+                                                                          (name  (substitute #\: #\. (cadr split))))
+                                                                     (aif (ignore-errors
+                                                                           (gethash name (gethash group contents)))
+                                                                          it 0)))))))))))
                                    (write-line "Done.")))))))
