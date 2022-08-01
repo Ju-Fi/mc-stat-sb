@@ -117,7 +117,9 @@
            (entities (extract-elements
                       (yason:parse (uiop:read-file-string (uiop:strcat dir "entities.json")))
                       "name"))
-           (custom (yason:parse (uiop:read-file-string "./data/custom_stats.json")))
+           (custom (if legacy
+                       (gethash "legacy" (yason:parse (uiop:read-file-string "./data/custom_stats.json")))
+                       (gethash "current" (yason:parse (uiop:read-file-string "./data/custom_stats.json")))))
            (stat-table (append
                         (gen-stat-table blocks "m" (if legacy "mineBlock" "mined") no-limit legacy)
                         (gen-stat-table items "u" (if legacy "useItem" "used") no-limit legacy)
