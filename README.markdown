@@ -5,12 +5,12 @@ This is a command line utility for generating and updating statistic scoreboards
 ## Features
 ### Supported
 - Generates valid datapack for versions 1.13+
-- Generates function to update all scoreboards for 1.13+
+- Generates function to generate scoreboards for versions 1.12+
+- Generates function to update all scoreboards for 1.12+
 - Whitelist feature to disregard bots
 ### Planned
 - Complete compatiblity with 1.7+ 
   - Ability to generate and update scoreboards directly with the `scoreboards.dat` file
-  - Stat names pre-flattening
 
 ## Usage
 
